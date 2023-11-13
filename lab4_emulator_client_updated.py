@@ -59,34 +59,47 @@ class MQTTClient:
 
 
     def publish(self, Payload="{\"message\": \"This is from the program\"}"):
+    #def publish(self, Payload="payload"):
         #TODO4: fill in this function for your publish
-        self.client.subscribeAsync("myTopic", 0, ackCallback=self.customSubackCallback)
+        #self.client.subscribeAsync("myTopic", 0, ackCallback=self.customSubackCallback)
         
-        self.client.publishAsync("myTopic", Payload, 0, ackCallback=self.customPubackCallback)
+        #self.client.publishAsync("myTopic", Payload, 0, ackCallback=self.customPubackCallback)
 
-
+        for i in range(5): 
+            topic_name = "vehicle/data/" + str(i)
+            self.client.subscribeAsync(topic_name, 0, ackCallback=self.customSubackCallback)
+        
+        self.client.publishAsync("vehicle/data", Payload, 0, ackCallback=self.customPubackCallback)
 
 print("Loading vehicle data...")
 data = []
 for i in range(5):
     a = pd.read_csv(data_path.format(i))
+    #print(a)
     data.append(a)
+#print(len(data))
+#print(data)
+
 
 print("Initializing MQTTClients...")
 clients = []
 for device_id in range(device_st, device_end):
-    print(device_id)
+    #print(device_id)
     client = MQTTClient(device_id,certificate_formatter.format(device_id,device_id) ,key_formatter.format(device_id,device_id))
     client.client.connect()
     clients.append(client)
- 
+#print(clients) 
 
 while True:
     print("send now?")
     x = input()
     if x == "s":
         for i,c in enumerate(clients):
-            c.publish()
+            df = data[i]
+            for index, row in df.iterrows():
+                payload = "{\"vehicle\": " + str(i) + ", \"co2_emission\": " + str(row["vehicle_CO2"]) + "}"
+                print(payload)
+                c.publish(payload)
 
     elif x == "d":
         for c in clients:
